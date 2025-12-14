@@ -192,11 +192,9 @@ async function main() {
 
   console.log(`✅ Created demo user: ${demoUser.email}`);
 
-  // Create some default flow rules for the demo user
-  const hdfc = institutions.find((i) => i.name === "HDFC Bank");
-  const dcb = institutions.find((i) => i.name === "DCB Bank");
-  const chase = institutions.find((i) => i.name === "Chase");
-  const zolve = institutions.find((i) => i.name === "Zolve");
+  // Create some example flow rules (commented out - user will create their own accounts first)
+  // These are examples for HDFC → DCB and Chase → Zolve transfers
+  console.log("ℹ️  Flow rules can be created after accounts are set up");
 
   console.log("🌱 Seed completed successfully!");
 }
