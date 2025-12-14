@@ -1,6 +1,10 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCurrentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import { OverviewCards } from "@/components/dashboard/OverviewCards";
+import { SpendingChart } from "@/components/dashboard/SpendingChart";
+import { TimeSeriesChart } from "@/components/dashboard/TimeSeriesChart";
+import { TopMerchantsCard } from "@/components/dashboard/TopMerchantsCard";
 
 export default async function DashboardPage() {
   const user = await getCurrentUser();
@@ -9,6 +13,11 @@ export default async function DashboardPage() {
     redirect("/auth/signin");
   }
 
+  // Default to current month
+  const now = new Date();
+  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
   return (
     <div className="space-y-6">
       <div>
@@ -16,96 +25,55 @@ export default async function DashboardPage() {
         <p className="text-gray-500">Overview of your financial accounts and transactions</p>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardDescription>Total Balance</CardDescription>
-            <CardTitle className="text-2xl">$0.00</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-gray-500">Across all accounts</p>
-          </CardContent>
-        </Card>
+      <OverviewCards
+        fromDate={firstDayOfMonth.toISOString()}
+        toDate={lastDayOfMonth.toISOString()}
+      />
 
-        <Card>
-          <CardHeader>
-            <CardDescription>This Month Income</CardDescription>
-            <CardTitle className="text-2xl text-green-600">$0.00</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-gray-500">+0% from last month</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardDescription>This Month Expenses</CardDescription>
-            <CardTitle className="text-2xl text-red-600">$0.00</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-gray-500">+0% from last month</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardDescription>Budget Used</CardDescription>
-            <CardTitle className="text-2xl">0%</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xs text-gray-500">$0 of $0 monthly limit</p>
-          </CardContent>
-        </Card>
+      <div className="grid gap-6 lg:grid-cols-2">
+        <SpendingChart
+          fromDate={firstDayOfMonth.toISOString()}
+          toDate={lastDayOfMonth.toISOString()}
+        />
+        <TopMerchantsCard
+          fromDate={firstDayOfMonth.toISOString()}
+          toDate={lastDayOfMonth.toISOString()}
+          limit={5}
+        />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Transactions</CardTitle>
-            <CardDescription>Your latest financial activity</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-500">No transactions yet. Upload your first statement to get started!</p>
-          </CardContent>
-        </Card>
+      <TimeSeriesChart groupBy="month" />
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Spending by Category</CardTitle>
-            <CardDescription>This month's breakdown</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-gray-500">No data available yet.</p>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Link
+          href="/dashboard/accounts"
+          className="rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-gray-400 transition-colors"
+        >
+          <div className="text-2xl">🏦</div>
+          <div className="mt-2 text-sm font-medium">Manage Accounts</div>
+        </Link>
+        <Link
+          href="/dashboard/imports"
+          className="rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-gray-400 transition-colors"
+        >
+          <div className="text-2xl">📄</div>
+          <div className="mt-2 text-sm font-medium">Upload Statement</div>
+        </Link>
+        <Link
+          href="/dashboard/budgets"
+          className="rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-gray-400 transition-colors"
+        >
+          <div className="text-2xl">💰</div>
+          <div className="mt-2 text-sm font-medium">Create Budget</div>
+        </Link>
+        <Link
+          href="/dashboard/chat"
+          className="rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-gray-400 transition-colors"
+        >
+          <div className="text-2xl">🤖</div>
+          <div className="mt-2 text-sm font-medium">Ask AI</div>
+        </Link>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Get started with your finance tracking</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <button className="rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-gray-400">
-              <div className="text-2xl">🏦</div>
-              <div className="mt-2 text-sm font-medium">Add Account</div>
-            </button>
-            <button className="rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-gray-400">
-              <div className="text-2xl">📄</div>
-              <div className="mt-2 text-sm font-medium">Upload Statement</div>
-            </button>
-            <button className="rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-gray-400">
-              <div className="text-2xl">💰</div>
-              <div className="mt-2 text-sm font-medium">Create Budget</div>
-            </button>
-            <button className="rounded-lg border-2 border-dashed border-gray-300 p-4 text-center hover:border-gray-400">
-              <div className="text-2xl">🤖</div>
-              <div className="mt-2 text-sm font-medium">Ask AI</div>
-            </button>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
