@@ -1,12 +1,17 @@
 import { ParsedStatementResult } from "@/lib/types";
 import { parseChaseStatement } from "./parsers/chase";
+import { parseHDFCStatement } from "./parsers/hdfc";
+import { parseDCBStatement } from "./parsers/dcb";
+import { parseZolveStatement } from "./parsers/zolve";
 
 export type PDFParser = (buffer: Buffer) => Promise<ParsedStatementResult>;
 
 // Registry of parsers by institution name
 const parsers: Record<string, PDFParser> = {
   Chase: parseChaseStatement,
-  // Will add more parsers: HDFC, DCB, Zolve
+  "HDFC Bank": parseHDFCStatement,
+  "DCB Bank": parseDCBStatement,
+  Zolve: parseZolveStatement,
 };
 
 export async function parseStatement(
