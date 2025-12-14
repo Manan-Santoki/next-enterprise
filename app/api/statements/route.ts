@@ -3,6 +3,7 @@ import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { saveFile } from "@/lib/storage";
 import { parseStatement } from "@/lib/pdf";
+import { categorizeTransaction } from "@/lib/categorization/engine";
 
 // GET /api/statements - List statements for user
 export async function GET(request: NextRequest) {
@@ -151,6 +152,21 @@ export async function POST(request: NextRequest) {
         data: transactionData,
         skipDuplicates: true,
       });
+
+      // Auto-categorize new transactions
+      const createdTransactions = await prisma.transaction.findMany({
+        where: {
+          statementFileId: statement.id,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      // Categorize each transaction
+      for (const txn of createdTransactions) {
+        await categorizeTransaction(txn.id);
+      }
 
       // Update account balance if we have closing balance
       if (parseResult.closingBalance !== undefined) {
