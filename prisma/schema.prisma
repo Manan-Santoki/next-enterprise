@@ -1,0 +1,453 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// NextAuth Models
+// ============================================================================
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("auth_accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("auth_sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("auth_verification_tokens")
+}
+
+// ============================================================================
+// User & Core Models
+// ============================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  baseCurrency  String    @default("USD") // ISO 4217
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // NextAuth relations
+  accounts Account[]
+  sessions Session[]
+
+  // App relations
+  financeAccounts        FinanceAccount[]
+  statementFiles         StatementFile[]
+  transactions           Transaction[]
+  categories             Category[]
+  budgets                Budget[]
+  flowRules              FlowRule[]
+  bankParsingTemplates   BankParsingTemplate[]
+  chatSessions           ChatSession[]
+  reports                Report[]
+  userCategoryRules      UserCategoryRule[]
+  transactionCorrections TransactionCorrection[]
+
+  @@map("users")
+}
+
+// ============================================================================
+// Finance Models
+// ============================================================================
+
+model Institution {
+  id       String   @id @default(cuid())
+  name     String   @unique
+  country  String // ISO country code
+  metadata Json? // { logo, website, etc }
+  isSystem Boolean  @default(false) // system-defined vs user-defined
+
+  financeAccounts     FinanceAccount[]
+  bankParsingTemplate BankParsingTemplate[]
+
+  @@map("institutions")
+}
+
+model FinanceAccount {
+  id                     String   @id @default(cuid())
+  userId                 String
+  institutionId          String
+  name                   String // internal name (e.g., "HDFC POR")
+  displayName            String? // optional display name
+  type                   String // checking, savings, credit_card, loan, wallet
+  currency               String // ISO 4217
+  connectionType         String // pdf_manual, plaid
+  plaidItemId            String?
+  plaidAccountId         String?
+  isPrimaryIncomeAccount Boolean  @default(false)
+  bankParsingTemplateId  String?
+  currentBalance         Decimal  @default(0) @db.Decimal(15, 2)
+  isActive               Boolean  @default(true)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  institution         Institution          @relation(fields: [institutionId], references: [id])
+  bankParsingTemplate BankParsingTemplate? @relation(fields: [bankParsingTemplateId], references: [id])
+
+  statementFiles                 StatementFile[]
+  transactions                   Transaction[]
+  budgets                        Budget[]
+  sourceFlowRules                FlowRule[]              @relation("SourceAccount")
+  destinationFlowRules           FlowRule[]              @relation("DestinationAccount")
+  transactionsAsCounterparty     Transaction[]           @relation("CounterpartyAccount")
+  userCategoryRules              UserCategoryRule[]
+  plaidItems                     PlaidItem[]
+  transactionEmbeddings          TransactionEmbedding[]
+
+  @@index([userId])
+  @@index([institutionId])
+  @@map("finance_accounts")
+}
+
+model BankParsingTemplate {
+  id              String   @id @default(cuid())
+  institutionId   String
+  name            String // e.g., "HDFC Savings – POR"
+  config          Json // { columnNames, regexes, dateFormats, etc }
+  sampleFileId    String? // reference to a sample StatementFile
+  createdByUserId String
+  isVerified      Boolean  @default(false) // verified/official templates
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  institution    Institution      @relation(fields: [institutionId], references: [id])
+  createdBy      User             @relation(fields: [createdByUserId], references: [id])
+  financeAccount FinanceAccount[]
+
+  @@index([institutionId])
+  @@map("bank_parsing_templates")
+}
+
+model StatementFile {
+  id               String    @id @default(cuid())
+  userId           String
+  accountId        String
+  periodStart      DateTime?
+  periodEnd        DateTime?
+  originalFilename String
+  storagePath      String
+  status           String    @default("uploaded") // uploaded, processing, parsed, failed
+  mimeType         String?
+  pages            Int?
+  errorMessage     String?   @db.Text
+  isTemplateSample Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user    User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account FinanceAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  transactions Transaction[]
+
+  @@index([userId])
+  @@index([accountId])
+  @@index([status])
+  @@map("statement_files")
+}
+
+model Transaction {
+  id                       String    @id @default(cuid())
+  userId                   String
+  accountId                String
+  statementFileId          String?
+  externalId               String? // for Plaid / bank IDs
+  postedAt                 DateTime // primary date for analytics
+  valueDate                DateTime?
+  rawDateString            String?
+  amount                   Decimal   @db.Decimal(15, 2) // signed: + = in, - = out
+  currency                 String
+  rawDescription           String    @db.Text
+  normalizedDescription    String?   @db.Text
+  transactionType          String? // card, upi, neft, zelle, deposit, atm, fee, interest, other
+  direction                String // credit, debit
+  categoryId               String?
+  subcategoryId            String?
+  isInternalTransfer       Boolean   @default(false)
+  transferGroupId          String?
+  counterpartyAccountId    String?
+  isIncome                 Boolean   @default(false)
+  isExpense                Boolean   @default(false)
+  aiCategorizationSource   String? // rules, ml, manual
+  notes                    String?   @db.Text
+  merchant                 String?
+  locationData             Json? // optional location metadata
+  balance                  Decimal?  @db.Decimal(15, 2) // balance after transaction
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  user              User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  account           FinanceAccount         @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  statementFile     StatementFile?         @relation(fields: [statementFileId], references: [id])
+  category          Category?              @relation("TransactionCategory", fields: [categoryId], references: [id])
+  subcategory       Category?              @relation("TransactionSubcategory", fields: [subcategoryId], references: [id])
+  counterparty      FinanceAccount?        @relation("CounterpartyAccount", fields: [counterpartyAccountId], references: [id])
+
+  embedding         TransactionEmbedding?
+  corrections       TransactionCorrection[]
+
+  @@index([userId])
+  @@index([accountId])
+  @@index([postedAt])
+  @@index([categoryId])
+  @@index([isInternalTransfer])
+  @@index([transferGroupId])
+  @@index([externalId])
+  @@map("transactions")
+}
+
+model Category {
+  id       String   @id @default(cuid())
+  userId   String? // null for global/system categories
+  name     String
+  parentId String?
+  icon     String?
+  color    String?
+  isSystem Boolean  @default(false)
+  order    Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user               User?              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent             Category?          @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children           Category[]         @relation("CategoryHierarchy")
+
+  transactions       Transaction[]      @relation("TransactionCategory")
+  subcategoryFor     Transaction[]      @relation("TransactionSubcategory")
+  budgets            Budget[]
+  userCategoryRules  UserCategoryRule[]
+
+  @@index([userId])
+  @@index([parentId])
+  @@map("categories")
+}
+
+model Budget {
+  id            String    @id @default(cuid())
+  userId        String
+  name          String
+  period        String // monthly, weekly, custom_range
+  startDate     DateTime?
+  endDate       DateTime?
+  categoryId    String?
+  accountId     String?
+  limitAmount   Decimal   @db.Decimal(15, 2)
+  currency      String
+  alertsEnabled Boolean   @default(true)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category?       @relation(fields: [categoryId], references: [id])
+  account  FinanceAccount? @relation(fields: [accountId], references: [id])
+
+  @@index([userId])
+  @@index([categoryId])
+  @@index([accountId])
+  @@map("budgets")
+}
+
+model FlowRule {
+  id                    String    @id @default(cuid())
+  userId                String
+  sourceAccountId       String?
+  destinationAccountId  String?
+  matchDirection        String // in, out, both
+  descriptionIncludes   String[] // array of substrings
+  descriptionRegex      String?
+  minAmount             Decimal?  @db.Decimal(15, 2)
+  maxAmount             Decimal?  @db.Decimal(15, 2)
+  timeWindowHours       Int?
+  handling              String // internal_transfer, income, expense, ignore
+  notes                 String?   @db.Text
+  priority              Int       @default(0)
+  isActive              Boolean   @default(true)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user               User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sourceAccount      FinanceAccount? @relation("SourceAccount", fields: [sourceAccountId], references: [id])
+  destinationAccount FinanceAccount? @relation("DestinationAccount", fields: [destinationAccountId], references: [id])
+
+  @@index([userId])
+  @@index([sourceAccountId])
+  @@index([destinationAccountId])
+  @@map("flow_rules")
+}
+
+model UserCategoryRule {
+  id                  String   @id @default(cuid())
+  userId              String
+  descriptionIncludes String[] // array of keywords
+  merchant            String?
+  categoryId          String
+  accountId           String?
+  priority            Int      @default(0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  user     User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category Category        @relation(fields: [categoryId], references: [id])
+  account  FinanceAccount? @relation(fields: [accountId], references: [id])
+
+  @@index([userId])
+  @@index([categoryId])
+  @@map("user_category_rules")
+}
+
+model TransactionCorrection {
+  id            String   @id @default(cuid())
+  transactionId String
+  userId        String
+  field         String // category, isIncome, isExpense, etc
+  oldValue      String?  @db.Text
+  newValue      String?  @db.Text
+  createdAt     DateTime @default(now())
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([transactionId])
+  @@index([userId])
+  @@map("transaction_corrections")
+}
+
+// ============================================================================
+// Plaid Integration
+// ============================================================================
+
+model PlaidItem {
+  id            String   @id @default(cuid())
+  userId        String
+  accountId     String
+  itemId        String   @unique // Plaid item ID
+  accessToken   String   @db.Text // encrypted
+  institutionId String?
+  cursor        String? // for transaction sync cursor
+  lastSync      DateTime?
+  status        String   @default("active") // active, error, revoked
+  errorMessage  String?  @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  account FinanceAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([accountId])
+  @@map("plaid_items")
+}
+
+// ============================================================================
+// AI & Embeddings
+// ============================================================================
+
+model TransactionEmbedding {
+  id             String   @id @default(cuid())
+  transactionId  String   @unique
+  accountId      String
+  qdrantPointId  String?  @unique
+  embeddingText  String?  @db.Text
+  status         String   @default("pending") // pending, synced, failed
+  errorMessage   String?  @db.Text
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  transaction Transaction    @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  account     FinanceAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([accountId])
+  @@map("transaction_embeddings")
+}
+
+model ChatSession {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String   @default("New Chat")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@index([userId])
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  sessionId String
+  role      String // user, assistant, system
+  content   String   @db.Text
+  toolCalls Json? // tool calls and results
+  createdAt DateTime @default(now())
+
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("chat_messages")
+}
+
+// ============================================================================
+// Reports
+// ============================================================================
+
+model Report {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String // csv, pdf, xlsx
+  params      Json // filters, date range, etc
+  storagePath String?
+  status      String   @default("pending") // pending, processing, completed, failed
+  errorMessage String? @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@map("reports")
+}

@@ -24,6 +24,7 @@ yarn-error.log*
 .pnpm-debug.log*
 
 # local env files
+.env
 .env.local
 .env.development.local
 .env.test.local
@@ -34,3 +35,15 @@ storybook-static/
 /playwright/.cache/
 
 /.npm-only-allow
+
+# database
+*.db
+*.db-journal
+prisma/migrations/
+
+# uploads
+/uploads/
+/public/uploads/
+
+# redis
+dump.rdb
