@@ -63,7 +63,7 @@ const createFlowRuleSchema = z.object({
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth();
-    const body = await request.json();
+    const body = (await request.json()) as { applyToExisting?: boolean; [key: string]: unknown };
 
     // Validate input
     const validatedData = createFlowRuleSchema.parse(body);

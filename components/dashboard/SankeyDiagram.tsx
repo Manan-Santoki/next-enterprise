@@ -55,7 +55,7 @@ export function SankeyDiagram({
 
         const response = await fetch(`/api/analytics/sankey?${params}`);
         if (response.ok) {
-          const result = await response.json();
+          const result = (await response.json()) as SankeyData;
           setData(result);
         }
       } catch (error) {
@@ -123,13 +123,11 @@ export function SankeyDiagram({
     })
   );
 
-  const sankeyLinks: Array<SankeyLink<SankeyNodeData, SankeyLinkData>> = data.links.map(
-    (link) => ({
-      ...link,
-      source: nodeMap.get(link.source)!,
-      target: nodeMap.get(link.target)!,
-    })
-  );
+  const sankeyLinks = data.links.map((link) => ({
+    ...link,
+    source: nodeMap.get(link.source)!,
+    target: nodeMap.get(link.target)!,
+  })) as Array<SankeyLink<SankeyNodeData, SankeyLinkData>>;
 
   // Create sankey generator
   const sankeyGenerator = sankey<SankeyNodeData, SankeyLinkData>()
@@ -146,12 +144,13 @@ export function SankeyDiagram({
   });
 
   // Color palette for nodes
-  const getNodeColor = (node: SankeyNode<SankeyNodeData, SankeyLinkData>) => {
+  const getNodeColor = (node: SankeyNode<SankeyNodeData, SankeyLinkData> | string) => {
+    if (typeof node === 'string') return "#6b7280";
     if (node.color) return node.color;
-    if (node.id.startsWith("account:")) return "#3b82f6";
-    if (node.id.startsWith("income:")) return "#10b981";
-    if (node.id.startsWith("expense:")) return "#ef4444";
-    if (node.id.startsWith("category:")) return "#8b5cf6";
+    if (node.id?.startsWith("account:")) return "#3b82f6";
+    if (node.id?.startsWith("income:")) return "#10b981";
+    if (node.id?.startsWith("expense:")) return "#ef4444";
+    if (node.id?.startsWith("category:")) return "#8b5cf6";
     return "#6b7280";
   };
 
@@ -179,7 +178,7 @@ export function SankeyDiagram({
                     strokeWidth={Math.max(1, link.width || 0)}
                   />
                   <title>
-                    {link.source.name} → {link.target.name}: {formatCurrency(link.value)}
+                    {(link.source as any).name || link.source} → {(link.target as any).name || link.target}: {formatCurrency(link.value)}
                   </title>
                 </g>
               );

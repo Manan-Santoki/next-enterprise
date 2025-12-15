@@ -1,16 +1,15 @@
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "./config";
+import { auth } from "./config";
 import { prisma } from "@/lib/db";
 
-export { authOptions };
+export { auth };
 
 export async function getCurrentUser() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   return session?.user;
 }
 
 export async function requireAuth() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user?.id) {
     throw new Error("Unauthorized");

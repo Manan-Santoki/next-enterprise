@@ -38,7 +38,7 @@ export function TopMerchantsCard({
 
         const response = await fetch(`/api/analytics/spending?${params}`);
         if (response.ok) {
-          const result = await response.json();
+          const result = (await response.json()) as { merchants: MerchantData[] };
           setData(result.merchants || []);
         }
       } catch (error) {

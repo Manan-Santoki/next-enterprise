@@ -55,7 +55,7 @@ export default function ImportsPage() {
   const fetchAccounts = async () => {
     try {
       const response = await fetch("/api/accounts");
-      const data = await response.json();
+      const data = (await response.json()) as { accounts: Account[] };
       setAccounts(data.accounts || []);
     } catch (error) {
       console.error("Error fetching accounts:", error);
@@ -65,7 +65,7 @@ export default function ImportsPage() {
   const fetchStatements = async () => {
     try {
       const response = await fetch("/api/statements");
-      const data = await response.json();
+      const data = (await response.json()) as { statements: Statement[] };
       setStatements(data.statements || []);
     } catch (error) {
       console.error("Error fetching statements:", error);
@@ -86,7 +86,7 @@ export default function ImportsPage() {
         body: formData,
       });
 
-      const data = await response.json();
+      const data = (await response.json()) as { error?: string; transactionsCreated?: number; statement: { originalFilename: string } };
 
       if (!response.ok) {
         throw new Error(data.error || "Upload failed");

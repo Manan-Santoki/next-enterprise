@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/utils/currency";
+import type { Category } from "@/lib/types/common";
 
 interface Budget {
   id: string;
@@ -39,7 +40,7 @@ export default function BudgetsPage() {
     try {
       const response = await fetch("/api/budgets?includeProgress=true");
       if (response.ok) {
-        const data = await response.json();
+        const data = (await response.json()) as { budgets: Budget[] };
         setBudgets(data.budgets);
       }
     } catch (error) {
@@ -233,7 +234,7 @@ function CreateBudgetDialog({
     amount: "",
     period: "monthly",
   });
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -244,7 +245,7 @@ function CreateBudgetDialog({
     try {
       const response = await fetch("/api/categories");
       if (response.ok) {
-        const data = await response.json();
+        const data = (await response.json()) as { categories: Category[] };
         setCategories(data.categories);
       }
     } catch (error) {

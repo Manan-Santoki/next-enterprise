@@ -1,5 +1,7 @@
-import PDFParser from "pdf-parse";
+import * as pdfParse from "pdf-parse";
 import { ParsedTransaction, ParsedStatementResult } from "@/lib/types";
+
+const PDFParser = (pdfParse as any).default || pdfParse;
 
 /**
  * Parse Chase College Checking statement

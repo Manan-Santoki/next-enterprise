@@ -50,7 +50,7 @@ export function CreateAccountDialog({ institutions, onClose }: CreateAccountDial
       });
 
       if (!response.ok) {
-        const data = await response.json();
+        const data = (await response.json()) as { error?: string };
         throw new Error(data.error || "Failed to create account");
       }
 

@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
 
     // Calculate progress for each budget
     const budgetsWithProgress = await Promise.all(
-      budgets.map(async (budget) => {
+      budgets.map(async (budget: typeof budgets[number]) => {
         const now = new Date();
         let startDate: Date;
         let endDate: Date;

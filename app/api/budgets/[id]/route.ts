@@ -16,10 +16,11 @@ const updateBudgetSchema = z.object({
 // GET /api/budgets/[id] - Get a specific budget
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth();
+    const params = await context.params;
 
     const budget = await prisma.budget.findFirst({
       where: {
@@ -55,11 +56,12 @@ export async function GET(
 // PATCH /api/budgets/[id] - Update a budget
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth();
     const body = await request.json();
+    const params = await context.params;
 
     const data = updateBudgetSchema.parse(body);
 
@@ -123,10 +125,11 @@ export async function PATCH(
 // DELETE /api/budgets/[id] - Delete a budget
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth();
+    const params = await context.params;
 
     // Check if budget exists and belongs to user
     const existingBudget = await prisma.budget.findFirst({

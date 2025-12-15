@@ -64,7 +64,7 @@ export default function AccountDetailPage() {
       const response = await fetch(`/api/accounts/${id}`);
       if (!response.ok) throw new Error("Failed to fetch account");
 
-      const data = await response.json();
+      const data = (await response.json()) as { account: AccountDetail };
       setAccount(data.account);
     } catch (error) {
       console.error("Error fetching account:", error);

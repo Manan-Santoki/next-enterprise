@@ -47,7 +47,7 @@ export function TimeSeriesChart({
 
         const response = await fetch(`/api/analytics/time-series?${params}`);
         if (response.ok) {
-          const result = await response.json();
+          const result = (await response.json()) as { data: TimeSeriesData[] };
           setData(result.data || []);
         }
       } catch (error) {

@@ -149,7 +149,7 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const user = await requireAuth();
-    const body = await request.json();
+    const body = (await request.json()) as { transactionIds: string[]; updates: Record<string, unknown> };
     const { transactionIds, updates } = body;
 
     if (!transactionIds || !Array.isArray(transactionIds)) {

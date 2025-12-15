@@ -46,7 +46,7 @@ export function SpendingChart({ fromDate, toDate, accountIds }: SpendingChartPro
 
         const response = await fetch(`/api/analytics/spending?${params}`);
         if (response.ok) {
-          const result = await response.json();
+          const result = (await response.json()) as { categories: CategoryData[] };
           setData(result.categories || []);
         }
       } catch (error) {
@@ -110,7 +110,7 @@ export function SpendingChart({ fromDate, toDate, accountIds }: SpendingChartPro
               cx="50%"
               cy="50%"
               labelLine={false}
-              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+              label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
               outerRadius={80}
               fill="#8884d8"
               dataKey="value"

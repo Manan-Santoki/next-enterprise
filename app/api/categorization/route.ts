@@ -6,7 +6,7 @@ import { categorizeAllTransactions, learnFromCorrections } from "@/lib/categoriz
 export async function POST(request: NextRequest) {
   try {
     const user = await requireAuth();
-    const body = await request.json();
+    const body = (await request.json()) as { action: string };
 
     const { action } = body;
 

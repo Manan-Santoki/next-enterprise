@@ -1,8 +1,6 @@
 import withBundleAnalyzer from "@next/bundle-analyzer"
 import { type NextConfig } from "next"
 
-import { env } from "./env.mjs"
-
 const config: NextConfig = {
   reactStrictMode: true,
   logging: {
@@ -18,4 +16,6 @@ const config: NextConfig = {
   ],
 }
 
-export default env.ANALYZE ? withBundleAnalyzer({ enabled: env.ANALYZE })(config) : config
+export default process.env.ANALYZE === "true"
+  ? withBundleAnalyzer({ enabled: true })(config)
+  : config

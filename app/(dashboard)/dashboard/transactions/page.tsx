@@ -97,7 +97,7 @@ export default function TransactionsPage() {
   const fetchAccounts = async () => {
     try {
       const response = await fetch("/api/accounts");
-      const data = await response.json();
+      const data = (await response.json()) as { accounts: Account[] };
       setAccounts(data.accounts || []);
     } catch (error) {
       console.error("Error fetching accounts:", error);
@@ -107,7 +107,7 @@ export default function TransactionsPage() {
   const fetchCategories = async () => {
     try {
       const response = await fetch("/api/categories");
-      const data = await response.json();
+      const data = (await response.json()) as { categories: Category[] };
       setCategories(data.categories || []);
     } catch (error) {
       console.error("Error fetching categories:", error);
@@ -126,7 +126,7 @@ export default function TransactionsPage() {
       });
 
       const response = await fetch(`/api/transactions?${params}`);
-      const data = await response.json();
+      const data = (await response.json()) as { transactions: Transaction[]; pagination: typeof pagination };
 
       setTransactions(data.transactions || []);
       setPagination(data.pagination);

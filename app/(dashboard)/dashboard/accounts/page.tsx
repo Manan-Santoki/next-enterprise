@@ -44,8 +44,8 @@ export default function AccountsPage() {
         fetch("/api/institutions"),
       ]);
 
-      const accountsData = await accountsRes.json();
-      const institutionsData = await institutionsRes.json();
+      const accountsData = (await accountsRes.json()) as { accounts: Account[] };
+      const institutionsData = (await institutionsRes.json()) as { institutions: Institution[] };
 
       setAccounts(accountsData.accounts || []);
       setInstitutions(institutionsData.institutions || []);

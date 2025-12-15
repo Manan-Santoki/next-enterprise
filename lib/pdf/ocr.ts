@@ -1,5 +1,7 @@
 import Tesseract from "tesseract.js";
-import PDFParser from "pdf-parse";
+import * as pdfParse from "pdf-parse";
+
+const PDFParser = (pdfParse as any).default || pdfParse;
 
 /**
  * Extract text from PDF using OCR
