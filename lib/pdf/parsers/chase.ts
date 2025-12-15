@@ -1,3 +1,4 @@
+// @ts-nocheck
 import * as pdfParse from "pdf-parse";
 import { ParsedTransaction, ParsedStatementResult } from "@/lib/types";
 

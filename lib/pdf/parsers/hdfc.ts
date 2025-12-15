@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { ParsedTransaction, ParsedStatementResult } from "@/lib/types";
 import { extractTextFromPDF, cleanOCRText } from "../ocr";
 

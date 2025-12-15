@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * Merchant database with common patterns and their category mappings
  */

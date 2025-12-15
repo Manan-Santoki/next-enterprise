@@ -6,11 +6,12 @@ import { z } from "zod";
 const createBudgetSchema = z.object({
   name: z.string().min(1),
   categoryId: z.string().optional().nullable(),
-  amount: z.number().positive(),
+  limitAmount: z.number().positive(),
   period: z.enum(["monthly", "weekly", "yearly"]),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
-  accountIds: z.array(z.string()).optional().default([]),
+  accountId: z.string().optional().nullable(),
+  currency: z.string().default("USD"),
 });
 
 // GET /api/budgets - List all budgets with progress
@@ -86,8 +87,8 @@ export async function GET(request: NextRequest) {
           where.categoryId = budget.categoryId;
         }
 
-        if (budget.accountIds && budget.accountIds.length > 0) {
-          where.accountId = { in: budget.accountIds };
+        if (budget.accountId) {
+          where.accountId = budget.accountId;
         }
 
         const spending = await prisma.transaction.aggregate({
@@ -98,7 +99,7 @@ export async function GET(request: NextRequest) {
         });
 
         const spent = Math.abs(parseFloat(spending._sum.amount?.toString() || "0"));
-        const limit = parseFloat(budget.amount.toString());
+        const limit = parseFloat(budget.limitAmount.toString());
         const remaining = limit - spent;
         const percentUsed = (spent / limit) * 100;
 
@@ -149,11 +150,12 @@ export async function POST(request: NextRequest) {
         userId: user.id,
         name: data.name,
         categoryId: data.categoryId,
-        amount: data.amount,
+        limitAmount: data.limitAmount,
+        currency: data.currency,
         period: data.period,
         startDate: data.startDate ? new Date(data.startDate) : null,
         endDate: data.endDate ? new Date(data.endDate) : null,
-        accountIds: data.accountIds,
+        accountId: data.accountId,
       },
       include: {
         category: {

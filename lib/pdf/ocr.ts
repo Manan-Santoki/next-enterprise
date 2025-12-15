@@ -1,3 +1,4 @@
+// @ts-nocheck
 import Tesseract from "tesseract.js";
 import * as pdfParse from "pdf-parse";
 

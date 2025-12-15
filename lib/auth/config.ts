@@ -25,13 +25,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           throw new Error("Invalid credentials");
         }
 
+        const email = credentials.email as string;
         const user = await prisma.user.findUnique({
           where: {
-            email: credentials.email,
+            email,
           },
         });
 
-        if (!user) {
+        if (!user || !user.email) {
           throw new Error("User not found");
         }
 
@@ -41,8 +42,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return {
           id: user.id,
           email: user.email,
-          name: user.name,
-          image: user.image,
+          name: user.name || "",
+          image: user.image || null,
         };
       },
     }),
